@@ -56,9 +56,16 @@ const byRepository = [
 ];
 
 test('publicCommitRows drops private repos and the profile repo, then ranks by commits', () => {
-  assert.deepEqual(publicCommitRows(byRepository, 'Giang-Dang', 2), [
+  assert.deepEqual(publicCommitRows(byRepository, ['Giang-Dang'], 2), [
     { name: 'latex-books', count: 285 },
     { name: 'snisplit', count: 41 },
+  ]);
+});
+
+test('publicCommitRows also drops repos the owner chose to hide', () => {
+  assert.deepEqual(publicCommitRows(byRepository, ['Giang-Dang', 'latex-books'], 2), [
+    { name: 'snisplit', count: 41 },
+    { name: 'mosaic-graph', count: 35 },
   ]);
 });
 

@@ -35,9 +35,9 @@ export const weekendShare = (totals) => {
   return all === 0 ? 0 : Math.round(((totals[SUNDAY] + totals[SATURDAY]) / all) * 100);
 };
 
-export const publicCommitRows = (byRepository, profileRepo, limit) =>
+export const publicCommitRows = (byRepository, excludedNames, limit) =>
   byRepository
-    .filter(({ repository }) => !repository.isPrivate && repository.name !== profileRepo)
+    .filter(({ repository }) => !repository.isPrivate && !excludedNames.includes(repository.name))
     .map(({ repository, contributions }) => ({ name: repository.name, count: contributions.totalCount }))
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);

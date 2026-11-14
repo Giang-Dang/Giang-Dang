@@ -19,6 +19,7 @@ const LOGIN = process.env.GH_LOGIN ?? 'Giang-Dang';
 const PROFILE_REPO = LOGIN;
 const ROUTINE_REPOS = ['computer-science-news'];
 const NOT_HAND_PUSHED = [PROFILE_REPO, ...ROUTINE_REPOS];
+const HIDDEN_FROM_COMMITS = [PROFILE_REPO, 'latex-books'];
 const TOKEN = process.env.GH_TOKEN;
 const COMMIT_ROWS = 5;
 const TAG_ROWS = 2;
@@ -81,11 +82,11 @@ const main = async () => {
   const repos = user.repositories.nodes.map(toRepo);
   const now = new Date();
   const totals = weekdayTotals(days);
-  const commitRows = publicCommitRows(collection.commitContributionsByRepository, PROFILE_REPO, COMMIT_ROWS);
+  const commitRows = publicCommitRows(collection.commitContributionsByRepository, HIDDEN_FROM_COMMITS, COMMIT_ROWS);
   const building = nowBuilding(repos, NOT_HAND_PUSHED);
 
   const buildingCommits =
-    publicCommitRows(collection.commitContributionsByRepository, PROFILE_REPO, Infinity).find((row) => row.name === building?.name)
+    publicCommitRows(collection.commitContributionsByRepository, [PROFILE_REPO], Infinity).find((row) => row.name === building?.name)
       ?.count ?? null;
   const tags = latestTags(repos, [PROFILE_REPO], TAG_ROWS);
 
