@@ -71,21 +71,6 @@ export const dayMonthVietnam = (iso) => {
   return `${parts.day} ${parts.month}`;
 };
 
-export const fullDateVietnam = (iso) => {
-  const parts = vietnamDateParts(iso);
-  return `${parts.day} ${parts.month} ${parts.year}`;
-};
-
-export const START_MARKER = '<!-- activity:start -->';
-export const END_MARKER = '<!-- activity:end -->';
-
-export const replaceBlock = (readme, block) => {
-  const start = readme.indexOf(START_MARKER);
-  const end = readme.indexOf(END_MARKER);
-  if (start === -1 || end === -1 || end < start) throw new Error('README is missing the activity markers');
-  return `${readme.slice(0, start + START_MARKER.length)}\n${block}\n${readme.slice(end)}`;
-};
-
 const ASSET_REFERENCE = /(assets\/[\w-]+\.svg)(\?v=\d+)?/g;
 
 export const stampAssets = (readme, stamp) => readme.replace(ASSET_REFERENCE, `$1?v=${stamp}`);

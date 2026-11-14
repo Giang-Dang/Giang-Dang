@@ -3,12 +3,10 @@ import assert from 'node:assert/strict';
 import {
   activeDays,
   dayMonthVietnam,
-  fullDateVietnam,
   isShipping,
   latestTags,
   nowBuilding,
   publicCommitRows,
-  replaceBlock,
   stampAssets,
   versionStamp,
   streaks,
@@ -105,17 +103,8 @@ test('latestTags lists the most recently pushed tagged repos', () => {
 
 test('dates are shown in Vietnam time, seven hours ahead of UTC', () => {
   assert.equal(dayMonthVietnam('2026-11-14T23:30:00Z'), '15 Nov');
-  assert.equal(fullDateVietnam('2026-12-31T16:59:00Z'), '31 Dec 2026');
-  assert.equal(fullDateVietnam('2026-12-31T17:00:00Z'), '1 Jan 2027');
-});
-
-test('replaceBlock swaps only the text between the markers', () => {
-  const readme = 'top\n<!-- activity:start -->\nold\n<!-- activity:end -->\nbottom';
-  assert.equal(replaceBlock(readme, 'new'), 'top\n<!-- activity:start -->\nnew\n<!-- activity:end -->\nbottom');
-});
-
-test('replaceBlock refuses a README without markers', () => {
-  assert.throws(() => replaceBlock('no markers here', 'new'), /missing the activity markers/);
+  assert.equal(dayMonthVietnam('2026-12-31T16:59:00Z'), '31 Dec');
+  assert.equal(dayMonthVietnam('2026-12-31T17:00:00Z'), '1 Jan');
 });
 
 test('stampAssets gives every card URL the new version, replacing an old one', () => {

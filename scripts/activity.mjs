@@ -4,12 +4,10 @@ import {
   activeDays,
   dayMonthVietnam,
   flattenDays,
-  fullDateVietnam,
   isShipping,
   latestTags,
   nowBuilding,
   publicCommitRows,
-  replaceBlock,
   stampAssets,
   versionStamp,
   streaks,
@@ -30,7 +28,6 @@ const MIDDOT = String.fromCharCode(0xb7);
 const QUERY = `query($login: String!) {
   user(login: $login) {
     contributionsCollection {
-      restrictedContributionsCount
       contributionCalendar { weeks { contributionDays { contributionCount date weekday } } }
       commitContributionsByRepository(maxRepositories: 25) {
         repository { name isPrivate }
@@ -70,11 +67,6 @@ const toRepo = (node) => ({
   latestTag: node.refs.nodes[0]?.name ?? null,
   lastCommit: node.defaultBranchRef?.target?.history?.nodes[0]?.messageHeadline ?? null,
 });
-
-const footerLine = ({ hasPrivate, now }) => {
-  const scope = hasPrivate ? 'Counts include private work' : 'Counts cover public work';
-  return `${scope} ${MIDDOT} repo lists are public only ${MIDDOT} updated ${fullDateVietnam(now.toISOString())}`;
-};
 
 const main = async () => {
   const user = await fetchActivity();
@@ -118,8 +110,7 @@ const main = async () => {
   mkdirSync('assets', { recursive: true });
   for (const [file, svg] of Object.entries(files)) writeFileSync(`assets/${file}`, `${svg}\n`);
 
-  const block = footerLine({ hasPrivate: collection.restrictedContributionsCount > 0, now });
-  writeFileSync('README.md', stampAssets(replaceBlock(readFileSync('README.md', 'utf8'), block), versionStamp(now)));
+  writeFileSync('README.md', stampAssets(readFileSync('README.md', 'utf8'), versionStamp(now)));
 };
 
 await main();
