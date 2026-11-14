@@ -1,0 +1,16 @@
+{
+  "name": "giang-dang",
+  "version": "1.0.0",
+  "description": "Profile README with self-updating activity cards",
+  "scripts": {
+    "test": "node --test",
+    "draw": "node scripts/activity.mjs"
+  },
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/newsreader": "5.3.0",
+    "fontkit": "2.0.4"
+  }
+}
