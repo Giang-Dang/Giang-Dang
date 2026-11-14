@@ -57,7 +57,7 @@ export const latestTags = (repos, excludedNames, limit) =>
   ownPublicRepos(repos, excludedNames)
     .filter((repo) => repo.latestTag)
     .slice(0, limit)
-    .map((repo) => ({ name: repo.name, url: repo.url, tag: repo.latestTag }));
+    .map((repo) => ({ name: repo.name, url: repo.url, tag: repo.latestTag, description: repo.description ?? null }));
 
 const vietnamDateParts = (iso) =>
   Object.fromEntries(
@@ -75,11 +75,6 @@ export const fullDateVietnam = (iso) => {
   const parts = vietnamDateParts(iso);
   return `${parts.day} ${parts.month} ${parts.year}`;
 };
-
-const MARKDOWN_SPECIALS = /[\\`*_[\]#|~]/g;
-
-export const escapeMarkdown = (text) =>
-  text.replace(MARKDOWN_SPECIALS, (ch) => `\\${ch}`).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 export const START_MARKER = '<!-- activity:start -->';
 export const END_MARKER = '<!-- activity:end -->';

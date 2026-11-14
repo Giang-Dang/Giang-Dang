@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {
   activeDays,
   dayMonthVietnam,
-  escapeMarkdown,
   fullDateVietnam,
   isShipping,
   latestTags,
@@ -90,8 +89,8 @@ test('isShipping is true within seven days of the last hand push, ignoring autom
 
 test('latestTags lists the most recently pushed tagged repos', () => {
   assert.deepEqual(latestTags(repos, ['Giang-Dang'], 2), [
-    { name: 'mosaic-graph', url: 'u2', tag: 'ch18' },
-    { name: 'rnn-to-transformer-lab', url: 'u3', tag: 'ch11' },
+    { name: 'mosaic-graph', url: 'u2', tag: 'ch18', description: null },
+    { name: 'rnn-to-transformer-lab', url: 'u3', tag: 'ch11', description: null },
   ]);
 });
 
@@ -99,10 +98,6 @@ test('dates are shown in Vietnam time, seven hours ahead of UTC', () => {
   assert.equal(dayMonthVietnam('2026-11-14T23:30:00Z'), '15 Nov');
   assert.equal(fullDateVietnam('2026-12-31T16:59:00Z'), '31 Dec 2026');
   assert.equal(fullDateVietnam('2026-12-31T17:00:00Z'), '1 Jan 2027');
-});
-
-test('escapeMarkdown neutralises emphasis, links and HTML in commit messages', () => {
-  assert.equal(escapeMarkdown('fix *a* [b] <i>'), 'fix \\*a\\* \\[b\\] &lt;i&gt;');
 });
 
 test('replaceBlock swaps only the text between the markers', () => {

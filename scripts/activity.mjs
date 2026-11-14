@@ -1,9 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { THEMES, overviewCard, commitsCard } from './lib/draw.mjs';
+import { THEMES, buildingCard, commitsCard, heroNarrow, heroWide, overviewCard, tagsCard } from './lib/draw.mjs';
 import {
   activeDays,
   dayMonthVietnam,
-  escapeMarkdown,
   flattenDays,
   fullDateVietnam,
   isShipping,
@@ -24,7 +23,6 @@ const TOKEN = process.env.GH_TOKEN;
 const COMMIT_ROWS = 5;
 const TAG_ROWS = 2;
 const MIDDOT = String.fromCharCode(0xb7);
-const GUILLEMET = String.fromCharCode(0x203a);
 
 const QUERY = `query($login: String!) {
   user(login: $login) {
@@ -38,7 +36,7 @@ const QUERY = `query($login: String!) {
     }
     repositories(first: 20, privacy: PUBLIC, ownerAffiliations: OWNER, isFork: false, orderBy: { field: PUSHED_AT, direction: DESC }) {
       nodes {
-        name url pushedAt isPrivate
+        name url pushedAt isPrivate description
         primaryLanguage { name }
         refs(refPrefix: "refs/tags/", first: 1, orderBy: { field: TAG_COMMIT_DATE, direction: DESC }) { nodes { name } }
         defaultBranchRef { target { ... on Commit { history(first: 1) { nodes { messageHeadline } } } } }
@@ -64,27 +62,15 @@ const toRepo = (node) => ({
   url: node.url,
   pushedAt: node.pushedAt,
   isPrivate: node.isPrivate,
+  description: node.description,
   language: node.primaryLanguage?.name ?? null,
   latestTag: node.refs.nodes[0]?.name ?? null,
   lastCommit: node.defaultBranchRef?.target?.history?.nodes[0]?.messageHeadline ?? null,
 });
 
-const markdownBlock = ({ building, buildingCommits, tags, hasPrivate, now }) => {
-  const lines = [];
-  if (building) {
-    const meta = [building.language, `pushed ${dayMonthVietnam(building.pushedAt)}`].filter(Boolean).join(` ${MIDDOT} `);
-    const commits = buildingCommits ? ` ${MIDDOT} ${buildingCommits} commits this year` : '';
-    lines.push(`**Now building** ${MIDDOT} [${building.name}](${building.url}) ${MIDDOT} ${meta}${commits}<br>`);
-    if (building.lastCommit) lines.push(`${GUILLEMET} ${escapeMarkdown(building.lastCommit)}`);
-    lines.push('');
-  }
-  if (tags.length > 0) {
-    lines.push(`**Latest tags** ${MIDDOT} ${tags.map((t) => `[${t.name}](${t.url}) \`${t.tag}\``).join(` ${MIDDOT} `)}`);
-    lines.push('');
-  }
+const footerLine = ({ hasPrivate, now }) => {
   const scope = hasPrivate ? 'Counts include private work' : 'Counts cover public work';
-  lines.push(`${scope} ${MIDDOT} repo lists are public only ${MIDDOT} updated ${fullDateVietnam(now.toISOString())}`);
-  return lines.join('\n');
+  return `${scope} ${MIDDOT} repo lists are public only ${MIDDOT} updated ${fullDateVietnam(now.toISOString())}`;
 };
 
 const main = async () => {
@@ -98,7 +84,12 @@ const main = async () => {
   const commitRows = publicCommitRows(collection.commitContributionsByRepository, PROFILE_REPO, COMMIT_ROWS);
   const building = nowBuilding(repos, NOT_HAND_PUSHED);
 
-  const cards = {
+  const buildingCommits =
+    publicCommitRows(collection.commitContributionsByRepository, PROFILE_REPO, Infinity).find((row) => row.name === building?.name)
+      ?.count ?? null;
+  const tags = latestTags(repos, [PROFILE_REPO], TAG_ROWS);
+
+  const themedCards = {
     overview: (theme) =>
       overviewCard(theme, {
         active: activeDays(days),
@@ -108,24 +99,23 @@ const main = async () => {
         share: weekendShare(totals),
       }),
     commits: (theme) => commitsCard(theme, commitRows),
+    building: (theme) =>
+      buildingCard(theme, {
+        repo: building,
+        commits: buildingCommits,
+        pushedLabel: building ? `pushed ${dayMonthVietnam(building.pushedAt)}` : '',
+      }),
+    tags: (theme) => tagsCard(theme, tags),
   };
 
-  mkdirSync('assets', { recursive: true });
-  for (const [name, draw] of Object.entries(cards)) {
-    for (const [themeName, theme] of Object.entries(THEMES)) {
-      writeFileSync(`assets/${name}-${themeName}.svg`, `${draw(theme)}\n`);
-    }
+  const files = { 'hero-wide.svg': heroWide(), 'hero-narrow.svg': heroNarrow() };
+  for (const [name, draw] of Object.entries(themedCards)) {
+    for (const [themeName, theme] of Object.entries(THEMES)) files[`${name}-${themeName}.svg`] = draw(theme);
   }
+  mkdirSync('assets', { recursive: true });
+  for (const [file, svg] of Object.entries(files)) writeFileSync(`assets/${file}`, `${svg}\n`);
 
-  const block = markdownBlock({
-    building,
-    buildingCommits:
-      publicCommitRows(collection.commitContributionsByRepository, PROFILE_REPO, Infinity).find((row) => row.name === building?.name)
-        ?.count ?? null,
-    tags: latestTags(repos, [PROFILE_REPO], TAG_ROWS),
-    hasPrivate: collection.restrictedContributionsCount > 0,
-    now,
-  });
+  const block = footerLine({ hasPrivate: collection.restrictedContributionsCount > 0, now });
   writeFileSync('README.md', replaceBlock(readFileSync('README.md', 'utf8'), block));
 };
 

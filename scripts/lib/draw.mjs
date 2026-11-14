@@ -1,20 +1,33 @@
 import { createRequire } from 'node:module';
 import * as fontkit from 'fontkit';
+import { MARK_GLYPH_PATH, MARK_RADIUS, MARK_VIEWBOX } from './mark.mjs';
 
 const require = createRequire(import.meta.url);
 
-const loadFont = (specifier) => fontkit.openSync(require.resolve(specifier));
+const SUBSETS = ['latin', 'latin-ext', 'vietnamese'];
+
+const loadFamily = (pkg, file, weight) =>
+  SUBSETS.map((subset) => fontkit.openSync(require.resolve(`@fontsource/${pkg}/files/${file}-${subset}-${weight}-normal.woff2`)));
 
 const FONTS = {
-  serif: loadFont('@fontsource/newsreader/files/newsreader-latin-400-normal.woff2'),
-  serifMedium: loadFont('@fontsource/newsreader/files/newsreader-latin-500-normal.woff2'),
-  mono: loadFont('@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2'),
+  serif: loadFamily('newsreader', 'newsreader', 400),
+  serifMedium: loadFamily('newsreader', 'newsreader', 500),
+  mono: loadFamily('ibm-plex-mono', 'ibm-plex-mono', 400),
 };
 
 export const THEMES = {
-  light: { fg: '#1e1c18', muted: '#6b665b', lineStrong: '#d2c9b6', accent: '#b4572f', quiet: '#d2c9b6' },
-  dark: { fg: '#f5f0e6', muted: '#b6af9f', lineStrong: 'rgba(251,248,242,0.25)', accent: '#d88e6f', quiet: 'rgba(251,248,242,0.25)' },
+  light: { fg: '#1e1c18', muted: '#6b665b', lineStrong: '#d2c9b6', accent: '#b4572f', accentText: '#9a4626', quiet: '#d2c9b6' },
+  dark: {
+    fg: '#f5f0e6',
+    muted: '#b6af9f',
+    lineStrong: 'rgba(251,248,242,0.25)',
+    accent: '#d88e6f',
+    accentText: '#d88e6f',
+    quiet: 'rgba(251,248,242,0.25)',
+  },
 };
+
+const INK = { ground: '#1e1c18', fg: '#f5f0e6', muted: '#8c8678', accent: '#d88e6f', lineStrong: 'rgba(251,248,242,0.25)' };
 
 const WIDTH = 380;
 const HEIGHT = 232;
@@ -39,34 +52,52 @@ const round = (n) => Math.round(n * 10) / 10;
 
 const roundPathNumbers = (d) => d.replace(/-?\d+\.\d+/g, (n) => String(round(Number(n))));
 
-const textWidth = (font, text, size, tracking = 0) => {
-  const run = font.layout(text);
-  const advance = run.positions.reduce((sum, p) => sum + p.xAdvance, 0) * (size / font.unitsPerEm);
-  return advance + tracking * size * Math.max(0, run.glyphs.length - 1);
+const faceFor = (family, char) => family.find((face) => face.hasGlyphForCodePoint(char.codePointAt(0))) ?? family[0];
+
+const segments = (family, text) => {
+  const out = [];
+  for (const char of text.normalize('NFC')) {
+    const face = faceFor(family, char);
+    const last = out[out.length - 1];
+    if (last && last.face === face) last.text += char;
+    else out.push({ face, text: char });
+  }
+  return out.map(({ face, text: part }) => ({ face, run: face.layout(part) }));
 };
 
-const textPath = (text, x, y, { font = FONTS.mono, size = EYEBROW_SIZE, fill, anchor = 'start', tracking = 0 }) => {
-  const width = textWidth(font, text, size, tracking);
-  let pen = anchor === 'end' ? x - width : anchor === 'middle' ? x - width / 2 : x;
-  const scale = size / font.unitsPerEm;
-  const run = font.layout(text);
-  const d = run.glyphs
-    .map((glyph, i) => {
+const layoutGlyphs = (family, text, size, tracking) => {
+  const glyphs = [];
+  let pen = 0;
+  for (const { face, run } of segments(family, text)) {
+    const scale = size / face.unitsPerEm;
+    run.glyphs.forEach((glyph, i) => {
       const position = run.positions[i];
-      const path = glyph.path.transform(scale, 0, 0, -scale, pen + position.xOffset * scale, y - position.yOffset * scale).toSVG();
+      glyphs.push({ glyph, scale, x: pen + position.xOffset * scale, dy: position.yOffset * scale });
       pen += position.xAdvance * scale + tracking * size;
-      return path;
-    })
-    .join('');
+    });
+  }
+  return { glyphs, width: glyphs.length === 0 ? 0 : pen - tracking * size };
+};
+
+const textWidth = (family, text, size, tracking = 0) => layoutGlyphs(family, text, size, tracking).width;
+
+const textPath = (text, x, y, { font = FONTS.mono, size = EYEBROW_SIZE, fill, anchor = 'start', tracking = 0 }) => {
+  const { glyphs, width } = layoutGlyphs(font, text, size, tracking);
+  const left = anchor === 'end' ? x - width : anchor === 'middle' ? x - width / 2 : x;
+  const d = glyphs.map(({ glyph, scale, x: gx, dy }) => glyph.path.transform(scale, 0, 0, -scale, left + gx, y - dy).toSVG()).join('');
   return `<path class="t" d="${roundPathNumbers(d)}" fill="${fill}"/>`;
 };
 
 class Card {
-  constructor(theme, label) {
+  constructor(theme, label, { width = WIDTH, height = HEIGHT, ground = null } = {}) {
     this.theme = theme;
     this.label = label;
+    this.width = width;
+    this.height = height;
     this.parts = [
-      `<rect x="0.5" y="0.5" width="${WIDTH - 1}" height="${HEIGHT - 1}" rx="10" fill="none" stroke="${theme.lineStrong}"/>`,
+      ground
+        ? `<rect width="${width}" height="${height}" rx="10" fill="${ground}"/>`
+        : `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="10" fill="none" stroke="${theme.lineStrong}"/>`,
     ];
   }
 
@@ -85,7 +116,7 @@ class Card {
   toSvg() {
     const title = escapeXml(this.label);
     return [
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${title}">`,
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}" role="img" aria-label="${title}">`,
       `<title>${title}</title>`,
       `<style>${ANIMATION_CSS}</style>`,
       ...this.parts,
@@ -150,5 +181,99 @@ export const commitsCard = (theme, rows) => {
     card.add(`<rect x="214" y="${y - 9}" width="${width}" height="8" rx="2" fill="${j === 0 ? theme.accent : theme.quiet}"/>`);
     card.text(String(row.count), WIDTH - PAD, y, { anchor: 'end' });
   });
+  return card.toSvg();
+};
+
+const ELLIPSIS = String.fromCharCode(0x2026);
+const GUILLEMET = String.fromCharCode(0x203a);
+const HERO = {
+  name: 'Dang Giang',
+  role: `.NET ENGINEER ${MIDDOT} HO CHI MINH CITY`,
+  site: 'DANGVNGIANG.DEV',
+  zone: 'UTC+7',
+};
+
+const mark = (x, y, size) => {
+  const scale = round(size / MARK_VIEWBOX * 1000) / 1000;
+  return `<g transform="translate(${x} ${y}) scale(${scale})"><rect width="${MARK_VIEWBOX}" height="${MARK_VIEWBOX}" rx="${MARK_RADIUS}" fill="#b4572f"/><path d="${MARK_GLYPH_PATH}" fill="#ffffff"/></g>`;
+};
+
+const heroLabel = `${HERO.name}, .NET engineer in Ho Chi Minh City. dangvngiang.dev`;
+
+export const heroWide = () => {
+  const width = 764;
+  const card = new Card(INK, heroLabel, { width, height: 168, ground: INK.ground });
+  card.add(mark(32, 48, 72));
+  card.text(HERO.name, 128, 96, { font: FONTS.serifMedium, size: 48, tracking: -0.02 });
+  card.text(`${HERO.role} ${MIDDOT} ${HERO.zone}`, 130, 128, { fill: INK.muted, tracking: EYEBROW_TRACKING });
+  card.text(HERO.site, width - 32, 96, { fill: INK.accent, tracking: EYEBROW_TRACKING, anchor: 'end' });
+  return card.toSvg();
+};
+
+export const heroNarrow = () => {
+  const card = new Card(INK, heroLabel, { width: WIDTH, height: 200, ground: INK.ground });
+  card.add(mark(PAD, 24, 56));
+  card.text(HERO.site, 92, 58, { fill: INK.accent, tracking: EYEBROW_TRACKING });
+  card.text(HERO.name, PAD, 128, { font: FONTS.serifMedium, size: 40, tracking: -0.02 });
+  card.text(HERO.role, PAD, 158, { fill: INK.muted, tracking: EYEBROW_TRACKING });
+  card.text(HERO.zone, PAD, 182, { fill: INK.muted, tracking: EYEBROW_TRACKING });
+  return card.toSvg();
+};
+
+export const wrapText = (measure, text, maxWidth, maxLines) => {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (measure(candidate) <= maxWidth || !line) {
+      line = candidate;
+      continue;
+    }
+    lines.push(line);
+    line = word;
+  }
+  if (line) lines.push(line);
+  if (lines.length <= maxLines) return lines;
+  const kept = lines.slice(0, maxLines);
+  let last = kept[maxLines - 1];
+  while (last && measure(`${last}${ELLIPSIS}`) > maxWidth) last = last.split(' ').slice(0, -1).join(' ');
+  kept[maxLines - 1] = `${last}${ELLIPSIS}`;
+  return kept;
+};
+
+const fitLine = (font, size, text, maxWidth) => wrapText((s) => textWidth(font, s, size), text, maxWidth, 1)[0] ?? '';
+
+export const buildingCard = (theme, { repo, commits, pushedLabel }) => {
+  const card = new Card(theme, repo ? `Now building ${repo.name}${repo.language ? ` in ${repo.language}` : ''}. Last commit: ${repo.lastCommit ?? 'none'}.` : 'Nothing pushed lately.');
+  card.eyebrow('NOW BUILDING', PAD);
+  if (!repo) {
+    card.text('Nothing pushed lately', PAD, 92, { font: FONTS.serif, size: 24 });
+    return card.toSvg();
+  }
+  card.eyebrow(pushedLabel.toUpperCase(), WIDTH - PAD, 'end');
+  card.text(fitLine(FONTS.serifMedium, 30, repo.name, WIDTH - 2 * PAD), PAD, 88, { font: FONTS.serifMedium, size: 30, tracking: -0.01 });
+  const meta = [repo.language?.toUpperCase(), commits ? `${commits} COMMITS THIS YEAR` : null].filter(Boolean).join(` ${MIDDOT} `);
+  if (meta) card.text(meta, PAD, 116, { fill: theme.muted, tracking: EYEBROW_TRACKING });
+  if (repo.lastCommit) {
+    const lines = wrapText((s) => textWidth(FONTS.serif, s, 17), `${GUILLEMET} ${repo.lastCommit}`, WIDTH - 2 * PAD, 3);
+    lines.forEach((line, i) => card.text(line, PAD, 156 + i * 24, { font: FONTS.serif, size: 17 }));
+  }
+  return card.toSvg();
+};
+
+export const tagsCard = (theme, tags) => {
+  const card = new Card(theme, `Latest tags: ${tags.map((t) => `${t.name} at ${t.tag}`).join(', ')}.`);
+  card.eyebrow('LATEST TAGS', PAD);
+  tags.slice(0, 2).forEach((tag, j) => {
+    const y = 88 + j * 74;
+    const tagWidth = textWidth(FONTS.mono, tag.tag, 15);
+    card.text(fitLine(FONTS.serif, 20, tag.name, WIDTH - 2 * PAD - tagWidth - 16), PAD, y, { font: FONTS.serif, size: 20 });
+    card.text(tag.tag, WIDTH - PAD, y, { fill: theme.accentText, anchor: 'end' });
+    if (tag.description) {
+      card.text(fitLine(FONTS.serif, 15, tag.description, WIDTH - 2 * PAD), PAD, y + 26, { font: FONTS.serif, size: 15, fill: theme.muted });
+    }
+  });
+  if (tags.length === 0) card.text('No tags yet', PAD, 92, { font: FONTS.serif, size: 24 });
   return card.toSvg();
 };
