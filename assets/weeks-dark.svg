@@ -56,7 +56,7 @@
 <rect class="b" style="animation-delay:686ms" x="335.1" y="155.5" width="4.8" height="22.5" rx="1" fill="#d88e6f"/>
 <rect class="b" style="animation-delay:700ms" x="341.6" y="64.1" width="4.8" height="113.9" rx="1" fill="#d88e6f"/>
 <rect class="b" style="animation-delay:714ms" x="348" y="153.9" width="4.8" height="24.1" rx="1" fill="#d88e6f"/>
-<rect x="354.4" y="127.2" width="4.8" height="50.8" rx="1" fill="none" stroke="#d88e6f" stroke-width="1.2" stroke-dasharray="2 2"/>
+<rect x="354.4" y="126.1" width="4.8" height="51.9" rx="1" fill="none" stroke="#d88e6f" stroke-width="1.2" stroke-dasharray="2 2"/>
 <line x1="20" y1="178" x2="360" y2="178" stroke="rgba(251,248,242,0.25)"/>
 <line x1="71.3" y1="178" x2="71.3" y2="183" stroke="rgba(251,248,242,0.25)"/>
 <path class="t" d="M78.5 193.5L78.5 201.3Q78.5 202 78.3 202.5Q78.1 203 77.6 203.4Q77.2 203.8 76.7 204Q76.1 204.2 75.4 204.2Q74.2 204.2 73.4 203.6Q72.7 202.9 72.4 201.8L73.6 201.6Q73.7 201.9 73.8 202.2Q73.9 202.4 74.2 202.6Q74.4 202.8 74.7 203Q75 203.1 75.4 203.1Q76.3 203.1 76.8 202.6Q77.2 202.1 77.2 201.1L77.2 194.6L73.5 194.6L73.5 193.5ZM87.5 204L86.6 201L83 201L82.1 204L80.8 204L84 193.5L85.6 193.5L88.9 204ZM84.9 194.9L84.7 194.9L83.3 199.9L86.3 199.9ZM91.7 195.2L91.6 195.2L91.6 204L90.5 204L90.5 193.5L92.3 193.5L95.9 202.4L96 202.4L96 193.5L97.1 193.5L97.1 204L95.3 204Z" fill="#b6af9f"/>
