@@ -19,6 +19,8 @@ import {
 
 const LOGIN = process.env.GH_LOGIN ?? 'Giang-Dang';
 const PROFILE_REPO = LOGIN;
+const ROUTINE_REPOS = ['computer-science-news'];
+const NOT_HAND_PUSHED = [PROFILE_REPO, ...ROUTINE_REPOS];
 const TOKEN = process.env.GH_TOKEN;
 const COMMIT_ROWS = 5;
 const TAG_ROWS = 2;
@@ -96,7 +98,7 @@ const main = async () => {
   const now = new Date();
   const totals = weekdayTotals(days);
   const commitRows = publicCommitRows(collection.commitContributionsByRepository, PROFILE_REPO, COMMIT_ROWS);
-  const building = nowBuilding(repos, PROFILE_REPO);
+  const building = nowBuilding(repos, NOT_HAND_PUSHED);
 
   const cards = {
     pulse: (theme) =>
@@ -105,7 +107,7 @@ const main = async () => {
         active: activeDays(days),
         streak: streaks(days),
         repos: collection.totalRepositoriesWithContributedCommits,
-        isShipping: isShipping(repos, PROFILE_REPO, now.getTime()),
+        isShipping: isShipping(repos, NOT_HAND_PUSHED, now.getTime()),
       }),
     weeks: (theme) => weeksCard(theme, weeklyTotals(weeks)),
     commits: (theme) => commitsCard(theme, commitRows),
@@ -124,7 +126,7 @@ const main = async () => {
     buildingCommits:
       publicCommitRows(collection.commitContributionsByRepository, PROFILE_REPO, Infinity).find((row) => row.name === building?.name)
         ?.count ?? null,
-    tags: latestTags(repos, PROFILE_REPO, TAG_ROWS),
+    tags: latestTags(repos, [PROFILE_REPO], TAG_ROWS),
     hasPrivate: collection.restrictedContributionsCount > 0,
     now,
   });

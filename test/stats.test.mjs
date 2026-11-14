@@ -77,28 +77,31 @@ test('publicCommitRows drops private repos and the profile repo, then ranks by c
 
 const repos = [
   { name: 'Giang-Dang', url: 'u0', pushedAt: '2026-11-14T23:00:00Z', isPrivate: false, latestTag: null },
+  { name: 'computer-science-news', url: 'u5', pushedAt: '2026-11-14T20:00:00Z', isPrivate: false, latestTag: null },
   { name: 'snisplit', url: 'u1', pushedAt: '2026-11-14T10:00:00Z', isPrivate: false, latestTag: null },
   { name: 'mosaic-graph', url: 'u2', pushedAt: '2026-08-13T00:00:00Z', isPrivate: false, latestTag: 'ch18' },
   { name: 'rnn-to-transformer-lab', url: 'u3', pushedAt: '2026-08-12T00:00:00Z', isPrivate: false, latestTag: 'ch11' },
   { name: 'old-lab', url: 'u4', pushedAt: '2024-01-01T00:00:00Z', isPrivate: false, latestTag: 'v1' },
 ];
 
-test('nowBuilding skips the profile repo the bot pushes every day', () => {
-  assert.equal(nowBuilding(repos, 'Giang-Dang').name, 'snisplit');
+const NOT_HAND_PUSHED = ['Giang-Dang', 'computer-science-news'];
+
+test('nowBuilding skips the profile repo and the routine repo, both pushed by automation', () => {
+  assert.equal(nowBuilding(repos, NOT_HAND_PUSHED).name, 'snisplit');
 });
 
-test('nowBuilding is null when only the profile repo exists', () => {
-  assert.equal(nowBuilding([repos[0]], 'Giang-Dang'), null);
+test('nowBuilding is null when only automated repos exist', () => {
+  assert.equal(nowBuilding([repos[0], repos[1]], NOT_HAND_PUSHED), null);
 });
 
-test('isShipping is true within seven days of the last real push', () => {
+test('isShipping is true within seven days of the last hand push, ignoring automated repos', () => {
   const pushed = Date.parse('2026-11-14T10:00:00Z');
-  assert.equal(isShipping(repos, 'Giang-Dang', pushed + 7 * 86_400_000), true);
-  assert.equal(isShipping(repos, 'Giang-Dang', pushed + 7 * 86_400_000 + 1), false);
+  assert.equal(isShipping(repos, NOT_HAND_PUSHED, pushed + 7 * 86_400_000), true);
+  assert.equal(isShipping(repos, NOT_HAND_PUSHED, pushed + 7 * 86_400_000 + 1), false);
 });
 
 test('latestTags lists the most recently pushed tagged repos', () => {
-  assert.deepEqual(latestTags(repos, 'Giang-Dang', 2), [
+  assert.deepEqual(latestTags(repos, ['Giang-Dang'], 2), [
     { name: 'mosaic-graph', url: 'u2', tag: 'ch18' },
     { name: 'rnn-to-transformer-lab', url: 'u3', tag: 'ch11' },
   ]);

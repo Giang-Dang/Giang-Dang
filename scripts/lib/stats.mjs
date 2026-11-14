@@ -48,19 +48,19 @@ export const publicCommitRows = (byRepository, profileRepo, limit) =>
     .sort((a, b) => b.count - a.count)
     .slice(0, limit);
 
-export const ownPublicRepos = (repos, profileRepo) =>
-  repos.filter((repo) => !repo.isPrivate && repo.name !== profileRepo);
+export const ownPublicRepos = (repos, excludedNames) =>
+  repos.filter((repo) => !repo.isPrivate && !excludedNames.includes(repo.name));
 
-export const nowBuilding = (repos, profileRepo) => {
-  const [latest] = ownPublicRepos(repos, profileRepo).sort((a, b) => Date.parse(b.pushedAt) - Date.parse(a.pushedAt));
+export const nowBuilding = (repos, excludedNames) => {
+  const [latest] = ownPublicRepos(repos, excludedNames).sort((a, b) => Date.parse(b.pushedAt) - Date.parse(a.pushedAt));
   return latest ?? null;
 };
 
-export const isShipping = (repos, profileRepo, now) =>
-  ownPublicRepos(repos, profileRepo).some((repo) => now - Date.parse(repo.pushedAt) <= SHIPPING_WINDOW_DAYS * DAY_MS);
+export const isShipping = (repos, excludedNames, now) =>
+  ownPublicRepos(repos, excludedNames).some((repo) => now - Date.parse(repo.pushedAt) <= SHIPPING_WINDOW_DAYS * DAY_MS);
 
-export const latestTags = (repos, profileRepo, limit) =>
-  ownPublicRepos(repos, profileRepo)
+export const latestTags = (repos, excludedNames, limit) =>
+  ownPublicRepos(repos, excludedNames)
     .filter((repo) => repo.latestTag)
     .slice(0, limit)
     .map((repo) => ({ name: repo.name, url: repo.url, tag: repo.latestTag }));
