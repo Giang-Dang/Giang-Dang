@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { THEMES, pulseCard, weeksCard, commitsCard, rhythmCard } from './lib/draw.mjs';
+import { THEMES, overviewCard, commitsCard } from './lib/draw.mjs';
 import {
   activeDays,
   dayMonthVietnam,
@@ -14,7 +14,6 @@ import {
   streaks,
   weekdayTotals,
   weekendShare,
-  weeklyTotals,
 } from './lib/stats.mjs';
 
 const LOGIN = process.env.GH_LOGIN ?? 'Giang-Dang';
@@ -31,8 +30,7 @@ const QUERY = `query($login: String!) {
   user(login: $login) {
     contributionsCollection {
       restrictedContributionsCount
-      totalRepositoriesWithContributedCommits
-      contributionCalendar { totalContributions weeks { contributionDays { contributionCount date weekday } } }
+      contributionCalendar { weeks { contributionDays { contributionCount date weekday } } }
       commitContributionsByRepository(maxRepositories: 25) {
         repository { name isPrivate }
         contributions { totalCount }
@@ -84,7 +82,7 @@ const markdownBlock = ({ building, buildingCommits, tags, hasPrivate, now }) => 
     lines.push(`**Latest tags** ${MIDDOT} ${tags.map((t) => `[${t.name}](${t.url}) \`${t.tag}\``).join(` ${MIDDOT} `)}`);
     lines.push('');
   }
-  const scope = hasPrivate ? 'Totals include private work' : 'Totals count public work';
+  const scope = hasPrivate ? 'Counts include private work' : 'Counts cover public work';
   lines.push(`${scope} ${MIDDOT} repo lists are public only ${MIDDOT} updated ${fullDateVietnam(now.toISOString())}`);
   return lines.join('\n');
 };
@@ -101,17 +99,15 @@ const main = async () => {
   const building = nowBuilding(repos, NOT_HAND_PUSHED);
 
   const cards = {
-    pulse: (theme) =>
-      pulseCard(theme, {
-        total: collection.contributionCalendar.totalContributions,
+    overview: (theme) =>
+      overviewCard(theme, {
         active: activeDays(days),
-        streak: streaks(days),
-        repos: collection.totalRepositoriesWithContributedCommits,
+        streak: streaks(days).current,
         isShipping: isShipping(repos, NOT_HAND_PUSHED, now.getTime()),
+        totals,
+        share: weekendShare(totals),
       }),
-    weeks: (theme) => weeksCard(theme, weeklyTotals(weeks)),
     commits: (theme) => commitsCard(theme, commitRows),
-    rhythm: (theme) => rhythmCard(theme, totals, weekendShare(totals)),
   };
 
   mkdirSync('assets', { recursive: true });

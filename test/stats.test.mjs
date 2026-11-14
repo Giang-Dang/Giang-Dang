@@ -13,7 +13,6 @@ import {
   streaks,
   weekdayTotals,
   weekendShare,
-  weeklyTotals,
 } from '../scripts/lib/stats.mjs';
 
 const day = (date, contributionCount, weekday) => ({ date, contributionCount, weekday });
@@ -36,17 +35,6 @@ test('streaks is zero when the last two days are empty', () => {
 test('activeDays counts days with at least one contribution', () => {
   const days = [0, 3, 0, 1].map((n, i) => day(`2026-01-0${i + 1}`, n, i));
   assert.equal(activeDays(days), 2);
-});
-
-test('weeklyTotals sums each week and keys it by its first day', () => {
-  const weeks = [
-    { contributionDays: [day('2026-01-04', 2, 0), day('2026-01-05', 3, 1)] },
-    { contributionDays: [day('2026-01-11', 0, 0)] },
-  ];
-  assert.deepEqual(weeklyTotals(weeks), [
-    { start: '2026-01-04', count: 5 },
-    { start: '2026-01-11', count: 0 },
-  ]);
 });
 
 test('weekendShare rounds Saturday plus Sunday over the total', () => {

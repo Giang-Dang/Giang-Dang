@@ -6,12 +6,6 @@ const VIETNAM_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 
 export const flattenDays = (weeks) => weeks.flatMap((week) => week.contributionDays);
 
-export const weeklyTotals = (weeks) =>
-  weeks.map((week) => ({
-    start: week.contributionDays[0].date,
-    count: week.contributionDays.reduce((sum, day) => sum + day.contributionCount, 0),
-  }));
-
 export const activeDays = (days) => days.filter((day) => day.contributionCount > 0).length;
 
 export const streaks = (days) => {
