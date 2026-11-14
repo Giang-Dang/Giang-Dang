@@ -85,3 +85,9 @@ export const replaceBlock = (readme, block) => {
   if (start === -1 || end === -1 || end < start) throw new Error('README is missing the activity markers');
   return `${readme.slice(0, start + START_MARKER.length)}\n${block}\n${readme.slice(end)}`;
 };
+
+const ASSET_REFERENCE = /(assets\/[\w-]+\.svg)(\?v=\d+)?/g;
+
+export const stampAssets = (readme, stamp) => readme.replace(ASSET_REFERENCE, `$1?v=${stamp}`);
+
+export const versionStamp = (date) => date.toISOString().replace(/\D/g, '').slice(0, 12);

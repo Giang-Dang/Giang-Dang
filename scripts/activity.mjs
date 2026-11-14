@@ -10,6 +10,8 @@ import {
   nowBuilding,
   publicCommitRows,
   replaceBlock,
+  stampAssets,
+  versionStamp,
   streaks,
   weekdayTotals,
   weekendShare,
@@ -117,7 +119,7 @@ const main = async () => {
   for (const [file, svg] of Object.entries(files)) writeFileSync(`assets/${file}`, `${svg}\n`);
 
   const block = footerLine({ hasPrivate: collection.restrictedContributionsCount > 0, now });
-  writeFileSync('README.md', replaceBlock(readFileSync('README.md', 'utf8'), block));
+  writeFileSync('README.md', stampAssets(replaceBlock(readFileSync('README.md', 'utf8'), block), versionStamp(now)));
 };
 
 await main();

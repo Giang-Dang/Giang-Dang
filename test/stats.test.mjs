@@ -9,6 +9,8 @@ import {
   nowBuilding,
   publicCommitRows,
   replaceBlock,
+  stampAssets,
+  versionStamp,
   streaks,
   weekdayTotals,
   weekendShare,
@@ -114,4 +116,16 @@ test('replaceBlock swaps only the text between the markers', () => {
 
 test('replaceBlock refuses a README without markers', () => {
   assert.throws(() => replaceBlock('no markers here', 'new'), /missing the activity markers/);
+});
+
+test('stampAssets gives every card URL the new version, replacing an old one', () => {
+  const readme = '<img src="assets/overview-light.svg?v=202611140000"> <source srcset="assets/hero-wide.svg">';
+  assert.equal(
+    stampAssets(readme, '202611150600'),
+    '<img src="assets/overview-light.svg?v=202611150600"> <source srcset="assets/hero-wide.svg?v=202611150600">',
+  );
+});
+
+test('versionStamp is the UTC minute as twelve digits', () => {
+  assert.equal(versionStamp(new Date('2026-11-14T23:05:42Z')), '202611142305');
 });
